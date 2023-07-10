@@ -54,6 +54,7 @@ const getAccessToken = async (authorizationCode) => {
     const tokenEndpoint = "https://accounts.spotify.com/api/token";
     const authString = `${BACKEND_CLIENT_ID_SPOTIFY}:${BACKEND_CLIENT_SECRET_SPOTIFY}`;
     const encodedAuthHeader = Buffer.from(authString).toString("base64");
+
     const requestBody = {
         grant_type: "authorization_code",
         code: authorizationCode,
@@ -66,15 +67,17 @@ const getAccessToken = async (authorizationCode) => {
         },
     };
     try {
+        // /feed/spotify/token
         const response = await axios.post(
             tokenEndpoint,
             querystring.stringify(requestBody),
             config
         );
+        console.log(authorizationCode);
         return response.data.access_token;
     } catch (error) {
         console.error(error);
-        throw new Error("Error getting access token");
+        // throw new Error("Error getting access token");
     }
 };
 
@@ -83,7 +86,7 @@ exports.getSpotifyCode = async (req, res) => {
         BACKEND_REDIRECT_URI_SPOTIFY
     )}&scope=user-library-read`;
 
-    res.json({ url: authorizeUrl });
+    res.status(200).json({ url: authorizeUrl });
 };
 
 exports.getSpotifyToken = (req, res) => {
@@ -134,7 +137,7 @@ const getLikedSongs = async (
                         .join(", ")}`
             );
             dataManager.setData(songList);
-            return;
+            return songList;
         }
         const allTracks = [...tracks, ...pageTracks];
         return getLikedSongs(accessToken, 50, offset + 50, allTracks);
@@ -238,19 +241,28 @@ exports.oauth2callback = async (req, res, next) => {
         const { tokens } = await oAuth2Client.getToken(code);
         dataManager.setAccessToken(tokens);
 
-        res.redirect(`http://localhost:3000/?likeSongBool=true`);
+        // res.redirect(`http://localhost:3000/?likeSongBool=true`);
+        const value = true;
+        res.cookie("likeSongBool", value);
+        res.redirect(`http://localhost:3000/`);
     } catch (error) {
         next(error);
     }
 };
 
+// COUNT LIKED SONGS
 let likedSongsCount = 0;
+
 exports.likeSongsOnYoutube = async (req, res, next) => {
+    const { userSpotifySongs } = req.body;
     try {
         const tokens = dataManager.getAccessTokenData();
 
+        dataManager.setData(userSpotifySongs);
         const data = dataManager.getData();
+        console.log(data);
         const totalSongs = data.length;
+        console.log(totalSongs);
         const intervalId = setInterval(async () => {
             if (data.length > 0) {
                 const videoName = data.shift();
