@@ -7,5 +7,6 @@ router.get("/youtube/oauth2callback", feedController.oauth2callback);
 router.get("/spotify/code", feedController.getSpotifyCode);
 router.get("/spotify/token", feedController.getSpotifyToken);
 router.get("/spotify/liked", feedController.getLikedSongsController);
+router.get("/youtube/like", feedController.likeSongsOnYoutube);
 
 module.exports = router;

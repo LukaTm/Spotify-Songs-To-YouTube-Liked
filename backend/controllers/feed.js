@@ -1,58 +1,63 @@
-const fetch = require("node-fetch");
+// const fetch = require("node-fetch");
 const axios = require("axios");
 const querystring = require("querystring");
 const { google } = require("googleapis");
 const { OAuth2 } = google.auth;
 
-// const apiKey = process.env.API_KEY;
 require("dotenv").config();
 
-const REDIRECT_URI_SPOTIFY = process.env.BACKEND_REDIRECT_URI_SPOTIFY;
-const CLIENT_ID_SPOTIFY = process.env.BACKEND_CLIENT_ID_SPOTIFY;
-const CLIENT_SECRET_SPOTIFY = process.env.BACKEND_CLIENT_SECRET_SPOTIFY;
+const {
+    BACKEND_REDIRECT_URI_SPOTIFY,
+    BACKEND_CLIENT_ID_SPOTIFY,
+    BACKEND_CLIENT_SECRET_SPOTIFY,
+    BACKEND_REDIRECT_URI_YOUTUBE,
+    BACKEND_CLIENT_ID_YOUTUBE,
+    BACKEND_CLIENT_SECRET_YOUTUBE,
+    BACKEND_SCOPE_YOUTUBE,
+    YOUTUBE_API_KEY,
+} = process.env;
 
-const REDIRECT_URI_YOUTUBE = process.env.BACKEND_REDIRECT_URI_YOUTUBE;
-const CLIENT_ID_YOUTUBE = process.env.BACKEND_CLIENT_ID_YOUTUBE;
-const CLIENT_SECRET_YOUTUBE = process.env.BACKEND_CLIENT_SECRET_YOUTUBE;
-const SCOPE_YOUTUBE = process.env.BACKEND_SCOPE_YOUTUBE;
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+class DataManager {
+    constructor() {
+        this.data = [];
+        this.accessToken = "";
+    }
 
-const dataManager = (() => {
-    let data = [];
+    setAccessToken(newAccessToken) {
+        this.accessToken = newAccessToken;
+    }
+    getAccessTokenData() {
+        return this.accessToken;
+    }
 
-    const getData = () => {
-        return data;
-    };
+    getData() {
+        return this.data;
+    }
 
-    const setData = (newData) => {
-        data = newData;
-    };
+    setData(newData) {
+        this.data = newData;
+    }
 
-    const addItem = (item) => {
-        data.push(item);
-    };
+    addItem(item) {
+        this.data.push(item);
+    }
 
-    const removeItem = (index) => {
-        data.splice(index, 1);
-    };
+    removeItem(index) {
+        this.data.splice(index, 1);
+    }
+}
 
-    return {
-        getData,
-        setData,
-        addItem,
-        removeItem,
-    };
-})();
+const dataManager = new DataManager();
 
 // Exchange authorization code for access token
 const getAccessToken = async (authorizationCode) => {
     const tokenEndpoint = "https://accounts.spotify.com/api/token";
-    const authString = `${CLIENT_ID_SPOTIFY}:${CLIENT_SECRET_SPOTIFY}`;
+    const authString = `${BACKEND_CLIENT_ID_SPOTIFY}:${BACKEND_CLIENT_SECRET_SPOTIFY}`;
     const encodedAuthHeader = Buffer.from(authString).toString("base64");
     const requestBody = {
         grant_type: "authorization_code",
         code: authorizationCode,
-        redirect_uri: REDIRECT_URI_SPOTIFY,
+        redirect_uri: BACKEND_REDIRECT_URI_SPOTIFY,
     };
     const config = {
         headers: {
@@ -74,20 +79,19 @@ const getAccessToken = async (authorizationCode) => {
 };
 
 exports.getSpotifyCode = async (req, res) => {
-    const authorizeUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID_SPOTIFY}&response_type=code&redirect_uri=${encodeURIComponent(
-        REDIRECT_URI_SPOTIFY
+    const authorizeUrl = `https://accounts.spotify.com/authorize?client_id=${BACKEND_CLIENT_ID_SPOTIFY}&response_type=code&redirect_uri=${encodeURIComponent(
+        BACKEND_REDIRECT_URI_SPOTIFY
     )}&scope=user-library-read`;
 
     res.json({ url: authorizeUrl });
 };
 
-exports.getSpotifyToken = async (req, res, next) => {
-    req.session.accessToken = req.query.code;
-    try {
-        res.redirect("http://localhost:3000");
-    } catch (error) {
-        next(error);
-    }
+exports.getSpotifyToken = (req, res) => {
+    const { code } = req.query;
+    req.session.accessToken = code;
+    const value = true;
+    res.cookie("value", value);
+    res.redirect("http://localhost:3000");
 };
 
 exports.getLikedSongsController = async (req, res, next) => {
@@ -99,16 +103,14 @@ exports.getLikedSongsController = async (req, res, next) => {
     }
     try {
         const accessToken = await getAccessToken(authorizationCode);
-        console.log("Access Token:", accessToken);
         const likedSongs = await getLikedSongs(accessToken);
 
-        res.json({ likedSongs });
+        res.status(200).json({ likedSongs });
     } catch (error) {
-        next(error);
+        res.status(500).json({ message: error.message });
     }
 };
 
-// Get user's liked songs using access token
 const getLikedSongs = async (
     accessToken,
     limit = 50,
@@ -142,73 +144,74 @@ const getLikedSongs = async (
     }
 };
 
-function likeVideo(
+const likeVideo = (
     videoName,
     accessToken,
     refreshToken,
     clientId,
     clientSecret,
-    redirectUrl,
-    callback
-) {
-    const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
+    redirectUrl
+) => {
+    return new Promise((resolve, reject) => {
+        const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
 
-    oauth2Client.setCredentials({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-    });
+        oauth2Client.setCredentials({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+        });
 
-    const youtube = google.youtube({
-        version: "v3",
-        auth: oauth2Client,
-    });
+        const youtube = google.youtube({
+            version: "v3",
+            auth: oauth2Client,
+        });
 
-    youtube.search.list(
-        {
-            q: videoName,
-            type: "video",
-            order: "relevance",
-            part: "id,snippet",
-        },
-        (err, res) => {
-            if (err) {
-                callback(err);
-            } else {
-                const videos = res.data.items;
-                if (videos.length > 0) {
-                    const videoId = videos[0].id.videoId;
-                    youtube.videos.rate(
-                        {
-                            id: videoId,
-                            rating: "like",
-                            part: "snippet",
-                        },
-                        (err, res) => {
-                            if (err) {
-                                callback(err);
-                            } else {
-                                callback(null, res);
-                            }
-                        }
-                    );
+        youtube.search.list(
+            {
+                q: videoName,
+                type: "video",
+                order: "relevance",
+                part: "id,snippet",
+            },
+            (err, res) => {
+                if (err) {
+                    reject(err);
                 } else {
-                    callback("No videos found.");
+                    const videos = res.data.items;
+                    if (videos.length > 0) {
+                        const videoId = videos[0].id.videoId;
+                        youtube.videos.rate(
+                            {
+                                id: videoId,
+                                rating: "like",
+                                part: "snippet",
+                            },
+                            (err, res) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve(res);
+                                }
+                            }
+                        );
+                    } else {
+                        reject("No videos found.");
+                    }
                 }
             }
-        }
-    );
-}
+        );
+    });
+};
 
 exports.getYoutubeToken = async (req, res, next) => {
     try {
         const oAuth2Client = new google.auth.OAuth2(
-            CLIENT_ID_YOUTUBE,
-            CLIENT_SECRET_YOUTUBE,
-            REDIRECT_URI_YOUTUBE
+            BACKEND_CLIENT_ID_YOUTUBE,
+            BACKEND_CLIENT_SECRET_YOUTUBE,
+            BACKEND_REDIRECT_URI_YOUTUBE
         );
         const authorizeUrl = oAuth2Client.generateAuthUrl({
             access_type: "offline",
-            scope: SCOPE_YOUTUBE,
+            scope: BACKEND_SCOPE_YOUTUBE,
         });
 
         res.set({
@@ -216,7 +219,7 @@ exports.getYoutubeToken = async (req, res, next) => {
             "Access-Control-Allow-Credentials": true,
             "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         });
-        res.json({ url: authorizeUrl });
+        res.status(200).json({ status: "success", url: authorizeUrl });
     } catch (error) {
         next(error);
     }
@@ -225,42 +228,64 @@ exports.getYoutubeToken = async (req, res, next) => {
 exports.oauth2callback = async (req, res, next) => {
     try {
         const oAuth2Client = new OAuth2(
-            CLIENT_ID_YOUTUBE,
-            CLIENT_SECRET_YOUTUBE,
-            REDIRECT_URI_YOUTUBE
+            BACKEND_CLIENT_ID_YOUTUBE,
+            BACKEND_CLIENT_SECRET_YOUTUBE,
+            BACKEND_REDIRECT_URI_YOUTUBE
         );
 
         const { code } = req.query;
 
-        // exchange the authorization code for an access token and refresh token
         const { tokens } = await oAuth2Client.getToken(code);
+        dataManager.setAccessToken(tokens);
+
+        res.redirect(`http://localhost:3000/?likeSongBool=true`);
+    } catch (error) {
+        next(error);
+    }
+};
+
+let likedSongsCount = 0;
+exports.likeSongsOnYoutube = async (req, res, next) => {
+    try {
+        const tokens = dataManager.getAccessTokenData();
 
         const data = dataManager.getData();
-        let x = 0;
-        const intervalId = setInterval(() => {
-            if (x < data.length) {
-                likeVideo(
-                    data[x],
-                    tokens.access_token,
-                    tokens.refresh_token,
-                    CLIENT_ID_YOUTUBE,
-                    CLIENT_SECRET_YOUTUBE,
-                    REDIRECT_URI_YOUTUBE,
-                    (err, res) => {
-                        if (err) {
-                            console.log(err);
-                        } else {
-                            console.log(`Success`);
-                        }
-                    }
-                );
-                x++;
+        const totalSongs = data.length;
+        const intervalId = setInterval(async () => {
+            if (data.length > 0) {
+                const videoName = data.shift();
+                try {
+                    await likeVideo(
+                        videoName,
+                        tokens.access_token,
+                        tokens.refresh_token,
+                        BACKEND_CLIENT_ID_YOUTUBE,
+                        BACKEND_CLIENT_SECRET_YOUTUBE,
+                        BACKEND_REDIRECT_URI_YOUTUBE
+                    );
+                    console.log("Success");
+                    likedSongsCount++;
+                } catch (error) {
+                    dataManager.setAccessToken("");
+                    console.error(error);
+                    clearInterval(intervalId);
+                    return res.status(500).json({
+                        status: "error",
+                        message: "An error occurred while liking the songs",
+                    });
+                }
             } else {
+                dataManager.setAccessToken("");
                 clearInterval(intervalId);
-                res.send("Success");
+                res.status(200).json({
+                    status: "success",
+                    message: `${likedSongsCount} out of ${totalSongs} songs liked successfully`,
+                });
             }
-        }, 2000);
+        }, 1000);
     } catch (error) {
+        console.log(error);
+        dataManager.setAccessToken("");
         next(error);
     }
 };
