@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useCookies } from "react-cookie";
 
 import "./App.css";
+
+import { useCookies } from "react-cookie";
+import { useRef } from "react";
 
 const Buttons = () => {
     const [spinner, setSpinner] = useState(false);
@@ -10,24 +12,67 @@ const Buttons = () => {
     const [operationMessage, setOperationMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState(false);
     const [errorMessage, setErrorMessage] = useState(false);
-    const [cookies, setCookie, removeCookie] = useCookies(["value"]);
-
-    useEffect(() => {
-        const cookieValue = cookies["value"];
-        if (cookieValue === "true") {
-            setSuccessMessage(true);
-        }
-    }, [cookies, removeCookie]);
+    const [customErrorMessage, setCustomErrorMessage] = useState("");
+    const [isLikingSongs, setIsLikingSongs] = useState(false);
+    // const [userSpotifySongs, setUserSpotifySongs] = useState([]);
+    const userSpotifySongsRef = useRef([]);
+    const startLikingSongsRef = useRef(false);
+    const isProcessing = useRef(false);
+    const isProcessingSpotfiy = useRef(false);
+    const [cookies, setCookie, removeCookie] = useCookies(["likeSongBool"]);
+    const [reRunCookies, setReRunCookie, removeReRunCookie] = useCookies([
+        "value",
+    ]);
 
     useEffect(() => {
         const storedSuccessMessage = localStorage.getItem("successMessage");
         if (storedSuccessMessage === "true") {
             setSuccessMessage(true);
         }
-        localStorage.removeItem("successMessage"); // Clear the stored value after retrieving it
+        localStorage.setItem("successMessage", false);
     }, []);
+    useEffect(() => {
+        const handle = async () => {
+            setCustomErrorMessage("");
+            removeReRunCookie("value");
+            setSpinner(true);
+            if (isProcessingSpotfiy.current) {
+                return;
+            }
+            isProcessingSpotfiy.current = true;
+            try {
+                const response = await axios.get(
+                    "http://localhost:8080/feed/spotify/liked",
+                    {
+                        withCredentials: true,
+                    }
+                );
+                if (response.status === 200) {
+                    localStorage.setItem("successMessage", "true");
+                    localStorage.setItem(
+                        "spotifySongs",
+                        JSON.stringify(response.data.likedSongs)
+                    );
+                    setSuccessMessage(true);
+                }
+            } catch (err) {
+                console.log(err);
+                setSpinner(false);
+            } finally {
+                isProcessingSpotfiy.current = false;
+                setSpinner(false);
+            }
+        };
+        const handler = async () => {
+            if (reRunCookies["value"] === "true") {
+                await handle();
+            }
+        };
+        handler();
+    }, [reRunCookies, removeReRunCookie]);
 
     const handleAuthorizationYoutube = async () => {
+        setCustomErrorMessage("");
         setErrorMessage(false);
         setSpinner(true);
         try {
@@ -48,99 +93,120 @@ const Buttons = () => {
         }
     };
 
-    const handleLikeSongs = async () => {
-        setSuccessMessage(false);
-        setSpinner(true);
-        setLoadingText(true);
-        try {
-            const response = await axios.get(
-                "http://localhost:8080/feed/youtube/like",
-                { withCredentials: true }
-            );
-            if (response.status === 200) {
-                setOperationMessage(response.data.message);
+    useEffect(() => {
+        const savedSpotifySongs = localStorage.getItem("spotifySongs");
+        if (savedSpotifySongs) {
+            const decodedSongs = JSON.parse(savedSpotifySongs);
+            userSpotifySongsRef.current = decodedSongs;
+        }
+        localStorage.removeItem("spotifySongs");
+        // const urlParams = new URLSearchParams(window.location.search);
+        // const startLikingSongs = urlParams.get("likeSongBool");
+        const startLikingSongs = cookies.likeSongBool;
+        if (startLikingSongs === "true") {
+            startLikingSongsRef.current = true;
+            removeCookie("likeSongBool");
+        }
+        const handleLikeSongs = async () => {
+            if (isProcessing.current) {
+                return;
+            }
+            setCustomErrorMessage("");
+            isProcessing.current = true;
+            setSuccessMessage(false);
+            setSpinner(true);
+            setLoadingText(true);
+            setIsLikingSongs(true);
+            try {
+                const response = await axios.post(
+                    "http://localhost:8080/feed/youtube/like",
+                    { userSpotifySongs: userSpotifySongsRef.current },
+                    { withCredentials: true }
+                );
+                if (response.status === 200) {
+                    setOperationMessage(response.data.message);
+                    setSpinner(false);
+                    setLoadingText(false);
+                    setIsLikingSongs(false);
+                }
+            } catch (error) {
+                console.log(error);
                 setSpinner(false);
                 setLoadingText(false);
+                setIsLikingSongs(false);
+                setCustomErrorMessage(
+                    "Something went wrong, most likely YouTube API daily limit is exceeded"
+                );
+            } finally {
+                isProcessing.current = false;
             }
-        } catch (error) {
-            console.log(error);
-            setSpinner(false);
-            setLoadingText(false);
-        }
-    };
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const accessToken = urlParams.get("likeSongBool");
-        console.log(accessToken);
-        if (accessToken === "true") {
+        };
+
+        if (startLikingSongsRef.current === true) {
+            startLikingSongsRef.current = false;
             handleLikeSongs();
         }
-    }, []);
-
-    const handle = async () => {
-        setSpinner(true);
-        try {
-            const response = await axios.get(
-                "http://localhost:8080/feed/spotify/liked",
-                {
-                    withCredentials: true,
-                }
-            );
-            //   setSpinner(false);
-            //   setSuccessMessage(true);
-            if (response.status === 200) {
-                localStorage.setItem("successMessage", "true"); // Store value in local storage
-            }
-        } catch (err) {
-            console.log(err);
-            setSpinner(false);
-        }
-    };
+    }, [
+        startLikingSongsRef,
+        userSpotifySongsRef,
+        cookies,
+        setCookie,
+        removeCookie,
+        isLikingSongs,
+    ]);
 
     const handleLogin = async () => {
+        setCustomErrorMessage("");
         setErrorMessage(false);
         setSpinner(true);
-        setSuccessMessage(false);
+        // setSuccessMessage(false);
         try {
             const response = await axios.get(
                 "http://localhost:8080/feed/spotify/code"
             );
-            if (response.status === 200) {
-                await handle();
-            }
             window.location.href = response.data.url;
+            // await handle();
         } catch (error) {
             setSpinner(false);
             setErrorMessage(true);
             console.log(error);
         }
     };
+
     return (
         <div className="buttons-container">
             <button
-                style={{ cursor: "pointer" }}
                 className="button"
+                style={{
+                    cursor: isLikingSongs ? "not-allowed" : "pointer",
+                    opacity: isLikingSongs ? 0.3 : 1,
+                }}
                 onClick={async () => {
                     await handleLogin();
                 }}
             >
-                Log in with Spotify and give the server the songs
+                Log in with Spotify to give the app your liked songs
             </button>
             <button
                 style={{
-                    cursor: successMessage ? "pointer" : "not-allowed",
-                    opacity: successMessage ? 1 : 0.3,
+                    cursor: successMessage
+                        ? "pointer"
+                        : isLikingSongs
+                        ? "not-allowed"
+                        : "not-allowed",
+                    opacity: successMessage ? 1 : isLikingSongs ? 0.3 : 0.3,
                 }}
                 className="button"
                 onClick={successMessage ? handleAuthorizationYoutube : null}
             >
-                Like Songs on YouTube
+                Log in with YouTube and like spotify songs on YouTube
             </button>
             <div className="loading-container">
                 {loadingText ? "Liking Songs" : ""}
                 {spinner && <span className="spinner" />}
             </div>
             <span>{errorMessage ? "Something went wrong" : ""}</span>
+            <span>{customErrorMessage}</span>
             <span>
                 {successMessage
                     ? "Successfully logged in with spotify, now you can like songs on youtube by pressing the Button"
@@ -154,10 +220,6 @@ const Buttons = () => {
 const App = () => {
     return (
         <div className="container">
-            <ol>
-                <li>Log in with spotify and give server all liked songs</li>
-                <li>Like spotify songs on YouTube</li>
-            </ol>
             <Buttons />
         </div>
     );

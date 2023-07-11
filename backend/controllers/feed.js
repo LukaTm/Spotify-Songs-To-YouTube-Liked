@@ -73,7 +73,6 @@ const getAccessToken = async (authorizationCode) => {
             querystring.stringify(requestBody),
             config
         );
-        console.log(authorizationCode);
         return response.data.access_token;
     } catch (error) {
         console.error(error);
@@ -147,7 +146,7 @@ const getLikedSongs = async (
     }
 };
 
-const likeVideo = (
+const likeVideo = async (
     videoName,
     accessToken,
     refreshToken,
@@ -155,54 +154,43 @@ const likeVideo = (
     clientSecret,
     redirectUrl
 ) => {
-    return new Promise((resolve, reject) => {
-        const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
+    const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
 
-        oauth2Client.setCredentials({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-        });
-
-        const youtube = google.youtube({
-            version: "v3",
-            auth: oauth2Client,
-        });
-
-        youtube.search.list(
-            {
-                q: videoName,
-                type: "video",
-                order: "relevance",
-                part: "id,snippet",
-            },
-            (err, res) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    const videos = res.data.items;
-                    if (videos.length > 0) {
-                        const videoId = videos[0].id.videoId;
-                        youtube.videos.rate(
-                            {
-                                id: videoId,
-                                rating: "like",
-                                part: "snippet",
-                            },
-                            (err, res) => {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve(res);
-                                }
-                            }
-                        );
-                    } else {
-                        reject("No videos found.");
-                    }
-                }
-            }
-        );
+    oauth2Client.setCredentials({
+        access_token: accessToken,
+        refresh_token: refreshToken,
     });
+
+    const youtube = google.youtube({
+        version: "v3",
+        auth: oauth2Client,
+    });
+
+    try {
+        const {
+            data: { items: videos },
+        } = await youtube.search.list({
+            q: videoName,
+            type: "video",
+            order: "relevance",
+            part: "id,snippet",
+        });
+
+        if (videos.length > 0) {
+            const videoId = videos[0].id.videoId;
+            const { data } = await youtube.videos.rate({
+                id: videoId,
+                rating: "like",
+                part: "snippet",
+            });
+
+            return data;
+        } else {
+            throw new Error("No videos found.");
+        }
+    } catch (error) {
+        throw error;
+    }
 };
 
 exports.getYoutubeToken = async (req, res, next) => {
@@ -260,9 +248,7 @@ exports.likeSongsOnYoutube = async (req, res, next) => {
 
         dataManager.setData(userSpotifySongs);
         const data = dataManager.getData();
-        console.log(data);
         const totalSongs = data.length;
-        console.log(totalSongs);
         const intervalId = setInterval(async () => {
             if (data.length > 0) {
                 const videoName = data.shift();
@@ -287,6 +273,7 @@ exports.likeSongsOnYoutube = async (req, res, next) => {
                     });
                 }
             } else {
+                likedSongsCount = 0;
                 dataManager.setAccessToken("");
                 clearInterval(intervalId);
                 res.status(200).json({
@@ -298,6 +285,6 @@ exports.likeSongsOnYoutube = async (req, res, next) => {
     } catch (error) {
         console.log(error);
         dataManager.setAccessToken("");
-        next(error);
+        res.status(500).json({ message: "Something went wrong" });
     }
 };
