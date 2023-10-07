@@ -197,7 +197,7 @@ const Buttons = () => {
                     opacity: successMessage ? 1 : isLikingSongs ? 0.3 : 0.3,
                 }}
                 className="button"
-                onClick={successMessage ? handleAuthorizationYoutube : null}
+                onClick={handleAuthorizationYoutube}
             >
                 Log in with YouTube and like spotify songs on YouTube
             </button>
