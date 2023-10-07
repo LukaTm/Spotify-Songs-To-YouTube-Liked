@@ -41,9 +41,12 @@ const Buttons = () => {
             }
             isProcessingSpotfiy.current = true;
             try {
-                const response = await axios.get("/feed/spotify/liked", {
-                    withCredentials: true,
-                });
+                const response = await axios.get(
+                    "https://spotify-to-yt-backend-mar.netlify.app/.netlify/functions/api/spotify/liked",
+                    {
+                        withCredentials: true,
+                    }
+                );
                 if (response.status === 200) {
                     localStorage.setItem("successMessage", "true");
                     localStorage.setItem(
@@ -73,9 +76,12 @@ const Buttons = () => {
         setErrorMessage(false);
         setSpinner(true);
         try {
-            const response = await axios.get("/feed/youtube/token", {
-                withCredentials: true,
-            });
+            const response = await axios.get(
+                "https://spotify-to-yt-backend-mar.netlify.app/.netlify/functions/api/youtube/token",
+                {
+                    withCredentials: true,
+                }
+            );
             if (response.status === 200) {
                 // Redirect to the authorization URL received from the backend
                 window.location.href = response.data.url;
@@ -113,7 +119,7 @@ const Buttons = () => {
             setIsLikingSongs(true);
             try {
                 const response = await axios.post(
-                    "/feed/youtube/like",
+                    "https://spotify-to-yt-backend-mar.netlify.app/.netlify/functions/api/youtube/like",
                     { userSpotifySongs: userSpotifySongsRef.current },
                     { withCredentials: true }
                 );
@@ -155,7 +161,9 @@ const Buttons = () => {
         setSpinner(true);
         // setSuccessMessage(false);
         try {
-            const response = await axios.get("/feed/spotify/code");
+            const response = await axios.get(
+                "https://spotify-to-yt-backend-mar.netlify.app/.netlify/functions/api/spotify/code"
+            );
             window.location.href = response.data.url;
             // await handle();
         } catch (error) {
