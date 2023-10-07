@@ -189,11 +189,11 @@ const Buttons = () => {
             </button>
             <button
                 style={{
-                    cursor: successMessage
-                        ? "pointer"
-                        : isLikingSongs
-                        ? "not-allowed"
-                        : "not-allowed",
+                    // cursor: successMessage
+                    //     ? "pointer"
+                    //     : isLikingSongs
+                    //     ? "not-allowed"
+                    //     : "not-allowed",
                     opacity: successMessage ? 1 : isLikingSongs ? 0.3 : 0.3,
                 }}
                 className="button"
