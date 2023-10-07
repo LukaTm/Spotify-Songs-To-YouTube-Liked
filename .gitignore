@@ -25,5 +25,4 @@ backend/.env
 Thumbs.db
 
 # Ignore package lock files
-package-lock.json
 yarn.lock
