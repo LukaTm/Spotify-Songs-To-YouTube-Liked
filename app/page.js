@@ -1,7 +1,9 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-import "./App.css";
+import "./Home.css";
 
 import { useCookies } from "react-cookie";
 import { useRef } from "react";
@@ -14,7 +16,6 @@ const Buttons = () => {
     const [errorMessage, setErrorMessage] = useState(false);
     const [customErrorMessage, setCustomErrorMessage] = useState("");
     const [isLikingSongs, setIsLikingSongs] = useState(false);
-    // const [userSpotifySongs, setUserSpotifySongs] = useState([]);
     const userSpotifySongsRef = useRef([]);
     const startLikingSongsRef = useRef(false);
     const isProcessing = useRef(false);
@@ -31,6 +32,7 @@ const Buttons = () => {
         }
         localStorage.setItem("successMessage", false);
     }, []);
+
     useEffect(() => {
         const handle = async () => {
             setCustomErrorMessage("");
@@ -41,12 +43,9 @@ const Buttons = () => {
             }
             isProcessingSpotfiy.current = true;
             try {
-                const response = await axios.get(
-                    "https://spotify-to-yt-backend-mar.netlify.app/.netlify/functions/api/spotify/liked",
-                    {
-                        withCredentials: true,
-                    }
-                );
+                const response = await axios.get("api/spotify/liked", {
+                    withCredentials: true,
+                });
                 if (response.status === 200) {
                     localStorage.setItem("successMessage", "true");
                     localStorage.setItem(
@@ -76,12 +75,9 @@ const Buttons = () => {
         setErrorMessage(false);
         setSpinner(true);
         try {
-            const response = await axios.get(
-                "https://spotify-to-yt-backend-mar.netlify.app/.netlify/functions/api/youtube/token",
-                {
-                    withCredentials: true,
-                }
-            );
+            const response = await axios.get("api/youtube/token", {
+                withCredentials: true,
+            });
             if (response.status === 200) {
                 // Redirect to the authorization URL received from the backend
                 window.location.href = response.data.url;
@@ -100,8 +96,6 @@ const Buttons = () => {
             userSpotifySongsRef.current = decodedSongs;
         }
         localStorage.removeItem("spotifySongs");
-        // const urlParams = new URLSearchParams(window.location.search);
-        // const startLikingSongs = urlParams.get("likeSongBool");
         const startLikingSongs = cookies.likeSongBool;
         if (startLikingSongs === "true") {
             startLikingSongsRef.current = true;
@@ -119,7 +113,7 @@ const Buttons = () => {
             setIsLikingSongs(true);
             try {
                 const response = await axios.post(
-                    "https://spotify-to-yt-backend-mar.netlify.app/.netlify/functions/api/youtube/like",
+                    "api/youtube/like",
                     { userSpotifySongs: userSpotifySongsRef.current },
                     { withCredentials: true }
                 );
@@ -159,13 +153,9 @@ const Buttons = () => {
         setCustomErrorMessage("");
         setErrorMessage(false);
         setSpinner(true);
-        // setSuccessMessage(false);
         try {
-            const response = await axios.get(
-                "https://spotify-to-yt-backend-mar.netlify.app/.netlify/functions/api/spotify/code"
-            );
+            const response = await axios.get("api/spotify/code");
             window.location.href = response.data.url;
-            // await handle();
         } catch (error) {
             setSpinner(false);
             setErrorMessage(true);
@@ -189,15 +179,15 @@ const Buttons = () => {
             </button>
             <button
                 style={{
-                    // cursor: successMessage
-                    //     ? "pointer"
-                    //     : isLikingSongs
-                    //     ? "not-allowed"
-                    //     : "not-allowed",
+                    cursor: successMessage
+                        ? "pointer"
+                        : isLikingSongs
+                        ? "not-allowed"
+                        : "not-allowed",
                     opacity: successMessage ? 1 : isLikingSongs ? 0.3 : 0.3,
                 }}
                 className="button"
-                onClick={handleAuthorizationYoutube}
+                onClick={successMessage ? handleAuthorizationYoutube : null}
             >
                 Log in with YouTube and like spotify songs on YouTube
             </button>
@@ -217,12 +207,12 @@ const Buttons = () => {
     );
 };
 
-const App = () => {
+const Home = () => {
     return (
-        <div className="container">
+        <div>
             <Buttons />
         </div>
     );
 };
 
-export default App;
+export default Home;
