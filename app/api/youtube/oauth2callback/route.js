@@ -21,7 +21,7 @@ export async function GET(req, res, next) {
             BACKEND_REDIRECT_URI_YOUTUBE
         );
 
-        const url = new URL(req.url, "http://localhost:3000");
+        const url = new URL(req.url, "https://transfer-songs-luka.vercel.app");
         const code = url.searchParams.get("code");
 
         const { tokens } = await oAuth2Client.getToken(code);
@@ -30,7 +30,7 @@ export async function GET(req, res, next) {
         cookies().set("likeSongBool", value);
         cookies().set("access_token", tokens.access_token);
 
-        return NextResponse.redirect("http://localhost:3000");
+        return NextResponse.redirect("https://transfer-songs-luka.vercel.app");
     } catch (error) {
         console.log(error);
         return NextResponse.json(

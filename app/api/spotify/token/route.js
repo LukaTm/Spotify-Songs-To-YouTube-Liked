@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 
 export async function GET(req, res, next) {
     try {
-        // Replace 'http://localhost:3000' with your actual base URL.
-        const url = new URL(req.url, "http://localhost:3000");
+        // Replace 'https://transfer-songs-luka.vercel.app' with your actual base URL.
+        const url = new URL(req.url, "https://transfer-songs-luka.vercel.app");
         const accessToken = url.searchParams.get("code");
 
         const value = true;
@@ -12,7 +12,7 @@ export async function GET(req, res, next) {
         cookies().set("value", value);
         cookies().set("accessToken", accessToken);
 
-        return NextResponse.redirect("http://localhost:3000");
+        return NextResponse.redirect("https://transfer-songs-luka.vercel.app");
     } catch (err) {
         console.log(err);
         return NextResponse.json(
