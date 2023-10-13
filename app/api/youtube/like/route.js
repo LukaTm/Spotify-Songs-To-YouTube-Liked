@@ -13,9 +13,7 @@ import { dataManager } from "../../../functions/functions";
 import { likeVideo } from "../../../functions/functions";
 
 export async function POST(req, res) {
-    // COUNT LIKED SONGS
     let likedSongsCount = 0;
-
     const songs = await req.json();
     const userSpotifySongs = songs.userSpotifySongs;
 
@@ -30,22 +28,33 @@ export async function POST(req, res) {
         // Process liked songs using a loop
         for (const videoName of data) {
             try {
-                await likeVideo(
+                const response = await likeVideo(
                     videoName,
                     TOKENS,
                     BACKEND_CLIENT_ID_YOUTUBE,
                     BACKEND_CLIENT_SECRET_YOUTUBE,
                     BACKEND_REDIRECT_URI_YOUTUBE
                 );
-                console.log("Success");
-                likedSongsCount++;
+
+                if (response && response.status === 200) {
+                    console.log("Success");
+                    likedSongsCount++;
+                } else {
+                    console.error(response.error);
+                    return res.status(500).json({
+                        status: "error",
+                        message: `Failed to like the song '${videoName}'`,
+                    });
+                }
             } catch (error) {
                 console.error(error);
                 return res.status(500).json({
                     status: "error",
-                    message: "Failed to like the song '${videoName}'",
+                    message: `Failed to like the song '${videoName}'`,
                 });
             }
+
+            await delay(1000);
         }
 
         return NextResponse.json(

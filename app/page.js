@@ -122,6 +122,7 @@ const Buttons = () => {
                     setSpinner(false);
                     setLoadingText(false);
                     setIsLikingSongs(false);
+                    userSpotifySongsRef.current = [];
                 }
             } catch (error) {
                 console.log(error);
