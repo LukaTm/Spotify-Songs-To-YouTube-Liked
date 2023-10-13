@@ -12,17 +12,17 @@ const {
 import { dataManager } from "../../../functions/functions";
 import { likeVideo } from "../../../functions/functions";
 
-// COUNT LIKED SONGS
-let likedSongsCount = 0;
-
 export async function POST(req, res) {
+    // COUNT LIKED SONGS
+    let likedSongsCount = 0;
+
     const songs = await req.json();
     const userSpotifySongs = songs.userSpotifySongs;
 
     try {
         const ACCESS_TOKEN = cookies().get("access_token");
         const TOKENS = ACCESS_TOKEN.value;
-
+        dataManager.setData([]);
         dataManager.setData(userSpotifySongs);
         const data = dataManager.getData();
         const totalSongs = data.length;
