@@ -129,7 +129,7 @@ const Buttons = () => {
                 setLoadingText(false);
                 setIsLikingSongs(false);
                 setCustomErrorMessage(
-                    "Something went wrong, most likely YouTube API daily limit is exceeded"
+                    "Something went wrong. Most likely, your email is not authorized in the app, or the YouTube API daily limit has been exceeded."
                 );
             } finally {
                 isProcessing.current = false;
