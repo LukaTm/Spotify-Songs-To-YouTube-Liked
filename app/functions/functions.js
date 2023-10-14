@@ -144,7 +144,7 @@ const likeVideo = async (
                 part: "snippet",
             });
 
-            return data;
+            return NextResponse.json({ data }, { status: 200 });
         } else {
             console.log("Video not found with the specified name: ", videoName);
         }

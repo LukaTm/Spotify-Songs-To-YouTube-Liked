@@ -34,9 +34,7 @@ export async function POST(req, res) {
                     TOKENS,
                     BACKEND_CLIENT_ID_YOUTUBE,
                     BACKEND_CLIENT_SECRET_YOUTUBE,
-                    BACKEND_REDIRECT_URI_YOUTUBE,
-                    likedSongsCount,
-                    totalSongs
+                    BACKEND_REDIRECT_URI_YOUTUBE
                 );
 
                 if (response && response.status === 200) {
