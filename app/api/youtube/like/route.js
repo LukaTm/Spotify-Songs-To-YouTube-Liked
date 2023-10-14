@@ -43,7 +43,7 @@ export async function POST(req, res) {
                     console.error(response.error);
                     return res.status(500).json({
                         status: "error",
-                        message: `Failed to like the song '${videoName}'`,
+                        message: `${likedSongsCount} out of ${totalSongs} songs liked successfully`,
                     });
                 }
             } catch (error) {

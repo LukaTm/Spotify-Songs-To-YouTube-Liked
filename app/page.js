@@ -46,13 +46,20 @@ const Buttons = () => {
                 const response = await axios.get("api/spotify/liked", {
                     withCredentials: true,
                 });
-                if (response.status === 200) {
+                if (
+                    response.status === 200 &&
+                    response.data.likedSongs.length > 0
+                ) {
                     localStorage.setItem("successMessage", "true");
                     localStorage.setItem(
                         "spotifySongs",
                         JSON.stringify(response.data.likedSongs)
                     );
                     setSuccessMessage(true);
+                } else {
+                    setCustomErrorMessage(
+                        "Something went wrong. Your email is not authorized in the app or You have no liked songs on Spotify"
+                    );
                 }
             } catch (err) {
                 console.log(err);
@@ -130,7 +137,7 @@ const Buttons = () => {
                 setLoadingText(false);
                 setIsLikingSongs(false);
                 setCustomErrorMessage(
-                    "Something went wrong. Most likely, your email is not authorized in the app, or the YouTube API daily limit has been exceeded."
+                    `Something went wrong. Most likely, YouTube API daily limit has been exceeded.\n ${error.message}`
                 );
             } finally {
                 isProcessing.current = false;
