@@ -69,7 +69,9 @@ export async function POST(req, res) {
     } catch (error) {
         console.error(error);
         return NextResponse.json(
-            { message: "Failed to like songs" },
+            {
+                message: `${likedSongsCount} out of ${totalSongs} songs liked successfully`,
+            },
             { status: 500 }
         );
     }
