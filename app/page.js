@@ -40,7 +40,7 @@ const Buttons = () => {
         const handle = async () => {
             setCustomErrorMessage("");
             removeReRunCookie("value");
-            removeAccessCookie("accessToken");
+
             setSpinner(true);
             if (isProcessingSpotfiy.current) {
                 return;
@@ -163,6 +163,7 @@ const Buttons = () => {
 
     const handleLogin = async () => {
         setCustomErrorMessage("");
+        removeAccessCookie("accessToken");
         setErrorMessage(false);
         setSpinner(true);
         try {
