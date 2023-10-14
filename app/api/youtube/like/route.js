@@ -14,6 +14,7 @@ import { likeVideo } from "../../../functions/functions";
 
 export async function POST(req, res) {
     let likedSongsCount = 0;
+    let totalSongs = 0;
     const songs = await req.json();
     const userSpotifySongs = songs.userSpotifySongs;
 
@@ -23,7 +24,7 @@ export async function POST(req, res) {
         dataManager.setData([]);
         dataManager.setData(userSpotifySongs);
         const data = dataManager.getData();
-        const totalSongs = data.length;
+        totalSongs = data.length;
 
         // Process liked songs using a loop
         for (const videoName of data) {
@@ -67,7 +68,9 @@ export async function POST(req, res) {
     } catch (error) {
         console.error(error);
         return NextResponse.json(
-            { message: "Failed to like songs" },
+            {
+                message: `${likedSongsCount} out of ${totalSongs} songs liked successfully`,
+            },
             { status: 500 }
         );
     }
