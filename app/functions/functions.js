@@ -113,7 +113,9 @@ const likeVideo = async (
     accessToken,
     clientId,
     clientSecret,
-    redirectUrl
+    redirectUrl,
+    likedSongsCount,
+    totalSongs
 ) => {
     try {
         const oauth2Client = new OAuth2(clientId, clientSecret, redirectUrl);
@@ -151,7 +153,9 @@ const likeVideo = async (
     } catch (error) {
         console.log(error);
         return NextResponse.json(
-            { message: "Failed to like the video" },
+            {
+                message: `${likedSongsCount} out of ${totalSongs} songs liked successfully`,
+            },
             { status: 500 }
         );
     }
