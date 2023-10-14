@@ -24,6 +24,9 @@ const Buttons = () => {
     const [reRunCookies, setReRunCookie, removeReRunCookie] = useCookies([
         "value",
     ]);
+    const [accessCookies, setAccessCookie, removeAccessCookie] = useCookies([
+        "accessToken",
+    ]);
 
     useEffect(() => {
         const storedSuccessMessage = localStorage.getItem("successMessage");
@@ -37,6 +40,7 @@ const Buttons = () => {
         const handle = async () => {
             setCustomErrorMessage("");
             removeReRunCookie("value");
+            removeAccessCookie("accessToken");
             setSpinner(true);
             if (isProcessingSpotfiy.current) {
                 return;
