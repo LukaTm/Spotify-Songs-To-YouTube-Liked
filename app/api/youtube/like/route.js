@@ -12,10 +12,6 @@ const {
 import { dataManager } from "../../../functions/functions";
 import { likeVideo } from "../../../functions/functions";
 
-function delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export async function POST(req, res) {
     let likedSongsCount = 0;
     let totalSongs = 0;
@@ -58,8 +54,6 @@ export async function POST(req, res) {
                     message: `Failed to like the song '${videoName}'`,
                 });
             }
-
-            await delay(100);
         }
 
         return NextResponse.json(
